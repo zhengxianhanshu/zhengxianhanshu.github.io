@@ -1,0 +1,102 @@
+# ParticleXF 覆盖配置（站点级，优先于主题默认 _config.yml）
+# https://github.com/FloranceYeh/hexo-theme-particlexf
+
+avatar: /images/avatar.jpg
+
+background:
+    - /images/background.jpg
+
+loading: /images/loading.gif
+
+theme:
+    toggle: true
+    default_theme: dark
+
+menu:
+    Home:
+        name: house
+        theme: solid
+        link: /
+    Archives:
+        name: box-archive
+        theme: solid
+        link: /archives
+    Categories:
+        name: bookmark
+        theme: solid
+        link: /categories
+    Tags:
+        name: tags
+        theme: solid
+        link: /tags
+    Search:
+        name: magnifying-glass
+        theme: solid
+        link: /search
+    About:
+        name: id-card
+        theme: solid
+        link: /about
+
+card:
+    enable: true
+    description: |
+        欢迎来到我的博客。
+        记录技术、生活与思考。
+    iconLinks:
+        Github:
+            name: github
+            theme: brands
+            link: https://github.com/USERNAME
+        Email:
+            name: envelope
+            theme: solid
+            link: mailto:you@example.com
+
+footer:
+    since: 2026
+
+highlight:
+    enable: true
+    wrap: true
+    collapse:
+        enable: true
+        lines: 20
+
+math:
+    enable: true
+
+mermaid:
+    enable: true
+    version: "7.1.2"
+
+preview:
+    enable: true
+
+crypto:
+    enable: false
+
+# 归档页标题过滤（主题自带）
+search:
+    enable: true
+
+stellars:
+    enable: true
+    seedChanger:
+        enable: false
+
+# giscus 评论：建仓后到 https://giscus.app 生成以下四个值并填入
+giscus:
+    enable: false
+    src: https://giscus.app/client.js
+    repo:
+    repoID:
+    category:
+    categoryID:
+    mapping: pathname
+    strict: 0
+    reactionsEnabled: 1
+    emitMetadata: 0
+    inputPosition: bottom
+    theme: preferred_color_scheme
+    lang: zh-CN
