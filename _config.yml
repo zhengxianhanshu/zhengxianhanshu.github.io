@@ -12,7 +12,7 @@ language: zh-CN
 timezone: 'Asia/Shanghai'
 
 # URL
-url: https://zhengxianhanshu.github.io/blog
+url: https://zhengxianhanshu.github.io
 permalink: posts/:title/
 permalink_defaults:
 pretty_urls:
