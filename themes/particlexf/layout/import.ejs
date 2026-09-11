@@ -83,5 +83,8 @@
 <% if (type === "index") { %>
 <script src="<%- url_for("/js/lib/home.js") %>"></script>
 <% } %>
+<% if (type === "search") { %>
+<script src="<%- url_for("/js/lib/fulltext-search.js") %>"></script>
+ <% } %>
 <link rel="stylesheet" href="<%- url_for("/css/main.css") %>" />
 <%- custom_theme_colors() %>
