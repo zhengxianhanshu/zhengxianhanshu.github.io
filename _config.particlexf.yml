@@ -1,7 +1,7 @@
 # ParticleXF 覆盖配置（站点级，优先于主题默认 _config.yml）
 # https://github.com/FloranceYeh/hexo-theme-particlexf
 
-avatar: /images/avatar.jpg
+avatar: /images/avatar.png
 
 background:
     - /images/background.jpg
