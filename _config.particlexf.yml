@@ -37,6 +37,10 @@ menu:
         name: id-card
         theme: solid
         link: /about
+    Demos:
+        name: atom
+        theme: solid
+        link: /demos/sine/
 
 card:
     enable: true

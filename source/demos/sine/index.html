@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>动起来的正弦函数</title>
+<style>
+    :root {
+        --bg: #0d1117;
+        --card: #161b22;
+        --line: #2d333b;
+        --text: #e6edf3;
+        --muted: #8b949e;
+        --sin: #4cc9f0;
+        --cos: #ffb703;
+        --accent: #7c3aed;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        padding: 24px 16px 48px;
+    }
+    .wrap { width: 100%; max-width: 960px; }
+    h1 { font-size: 26px; letter-spacing: 1px; }
+    .sub { color: var(--muted); margin: 8px 0 20px; font-size: 14px; line-height: 1.7; }
+    .stage {
+        position: relative;
+        background: linear-gradient(180deg, #10151c, #0d1117 70%);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+    }
+    canvas { display: block; width: 100%; height: clamp(300px, 46vw, 420px); }
+    .panel {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px 22px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px 20px;
+        margin-top: 16px;
+        align-items: center;
+    }
+    .ctl label { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .ctl label b { color: var(--text); font-variant-numeric: tabular-nums; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+    .btns { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    button {
+        background: var(--accent);
+        color: #fff;
+        border: 0;
+        border-radius: 8px;
+        padding: 9px 18px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    button.ghost { background: transparent; border: 1px solid var(--line); color: var(--text); }
+    .chk { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text); cursor: pointer; user-select: none; }
+    .chk input { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 2px; }
+    .formula {
+        margin-top: 16px;
+        padding: 14px 20px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        font-family: "Cambria Math", Georgia, serif;
+        font-size: 17px;
+        display: flex;
+        gap: 26px;
+        flex-wrap: wrap;
+    }
+    .formula .sin { color: var(--sin); }
+    .formula .cos { color: var(--cos); }
+    .live { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="wrap">
+    <h1>动起来的正弦函数</h1>
+    <p class="sub">
+        左侧单位圆上的点做匀速圆周运动，它的<b>纵向投影</b>随时间向右展开，就是正弦曲线；横向投影是余弦。
+        拖动滑块改变振幅、频率与速度，勾选「衰减」可以观察阻尼波。
+    </p>
+
+    <div class="stage"><canvas id="cv"></canvas></div>
+
+    <div class="panel">
+        <div class="btns">
+            <button id="play">⏸ 暂停</button>
+            <button id="reset" class="ghost">↺ 重置</button>
+        </div>
+        <div class="ctl">
+            <label>振幅 A <b id="aV">1.00</b></label>
+            <input id="a" type="range" min="0.15" max="1.5" step="0.01" value="1">
+        </div>
+        <div class="ctl">
+            <label>角频率 ω <b id="wV">1.60</b></label>
+            <input id="w" type="range" min="0.4" max="3" step="0.01" value="1.6">
+        </div>
+        <div class="ctl">
+            <label>速度 <b id="sV">1.00×</b></label>
+            <input id="s" type="range" min="0.1" max="3" step="0.05" value="1">
+        </div>
+        <div class="btns">
+            <label class="chk"><input id="cos" type="checkbox" checked>
+                <span class="dot" style="background:var(--cos)"></span>余弦</label>
+            <label class="chk"><input id="damp" type="checkbox">
+                <span class="dot" style="background:var(--muted)"></span>衰减</label>
+        </div>
+    </div>
+
+    <div class="formula">
+        <span class="sin live" id="fSin"></span>
+        <span class="cos live" id="fCos"></span>
+    </div>
+</div>
+
+<script>
+(function () {
+    "use strict";
+    var cv = document.getElementById("cv");
+    var ctx = cv.getContext("2d");
+    var W = 0, H = 0;
+
+    var st = {
+        theta: 0,
+        running: true,
+        A: 1,
+        omega: 1.6,
+        speed: 1,
+        showCos: true,
+        damping: false
+    };
+
+    function resize() {
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        var r = cv.getBoundingClientRect();
+        W = r.width;
+        H = r.height;
+        cv.width = Math.round(W * dpr);
+        cv.height = Math.round(H * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    var $ = function (id) { return document.getElementById(id); };
+    var playBtn = $("play");
+    playBtn.addEventListener("click", function () {
+        st.running = !st.running;
+        playBtn.textContent = st.running ? "⏸ 暂停" : "▶ 播放";
+    });
+    $("reset").addEventListener("click", function () { st.theta = 0; });
+    bind("a", "A", function (v) { return v.toFixed(2); }, $("aV"));
+    bind("w", "omega", function (v) { return v.toFixed(2); }, $("wV"));
+    bind("s", "speed", function (v) { return v.toFixed(2) + "×"; }, $("sV"));
+    $("cos").addEventListener("change", function (e) { st.showCos = e.target.checked; });
+    $("damp").addEventListener("change", function (e) { st.damping = e.target.checked; });
+
+    function bind(id, key, fmt, out) {
+        $(id).addEventListener("input", function (e) {
+            st[key] = parseFloat(e.target.value);
+            out.textContent = fmt(st[key]);
+        });
+    }
+
+    // 每帧：推进相位 → 重画
+    var last = performance.now();
+    function frame(now) {
+        var dt = Math.min((now - last) / 1000, 0.05);
+        last = now;
+        if (st.running) st.theta += st.omega * st.speed * 1.8 * dt;
+        draw();
+        requestAnimationFrame(frame);
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+
+        // 布局：圆 + 波形区
+        var padL = 24, padR = 16;
+        var R = Math.min(H * 0.34, 78);                 // 单位圆半径(px)
+        var cx = padL + R + 14, cy = H / 2;              // 圆心
+        var x0 = cx + R + 46;                            // 波形起点
+        var x1 = W - padR;                               // 波形终点
+        var span = Math.max(x1 - x0, 60);
+        var lambda = span / (1.0 + st.omega);            // 一个波长像素宽
+        var k = (2 * Math.PI) / lambda;                  // 空间角波数
+        var unit = R * 0.86;                             // A=1 时的像素振幅
+        var damp = st.damping ? 0.22 : 0;
+
+        grid(x0, x1, cy, R, lambda, k, unit);
+
+        // 旋转点（相位 θ 时位于圆上）
+        var px = cx + unit * st.A * Math.cos(st.theta);
+        var py = cy - unit * st.A * Math.sin(st.theta);
+
+        // 圆与半径
+        ctx.strokeStyle = "rgba(139,148,158,.45)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, unit, 0, 2 * Math.PI);
+        ctx.stroke();
+        dashed(cx, cy, px, py, "rgba(230,237,243,.6)");
+        axes(cx, cy, unit);
+
+        // 投影虚线：点 → 波形头部
+        dashed(px, py, x0, py, "rgba(76,201,240,.35)");
+        // 横向投影(余弦)：点 → 圆下 x 轴
+        if (st.showCos) dashed(px, py, px, cy, "rgba(255,183,3,.35)");
+
+        // 波形
+        wave(x0, x1, cy, k, damp, unit, st.theta, st.A, "#4cc9f0", lambda);
+        if (st.showCos) wave(x0, x1, cy, k, damp, unit, st.theta + Math.PI / 2, st.A, "#ffb703", lambda);
+
+        // 头部光点
+        var head = unit * st.A * Math.sin(st.theta);
+        ctx.save();
+        ctx.shadowColor = "#4cc9f0";
+        ctx.shadowBlur = 14;
+        ctx.fillStyle = "#4cc9f0";
+        ctx.beginPath();
+        ctx.arc(x0, cy - head, 4.5, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.restore();
+        ctx.fillStyle = "#e6edf3";
+        ctx.beginPath();
+        ctx.arc(px, py, 5, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // 实时数值
+        $("fSin").textContent = "y = " + st.A.toFixed(2) + "·sin(" +
+            st.omega.toFixed(2) + " t)" + (st.damping ? "·e^−" + damp.toFixed(2) + "φ" : "") +
+            "  =  " + (st.A * Math.sin(st.theta)).toFixed(3);
+        $("fCos").textContent = st.showCos ? "x = " + st.A.toFixed(2) + "·cos(" +
+            st.omega.toFixed(2) + " t)  =  " + (st.A * Math.cos(st.theta)).toFixed(3) : "";
+    }
+
+    function wave(x0, x1, cy, k, damp, unit, phase0, A, color, lambda) {
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.2;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        for (var x = x0; x <= x1; x += 2) {
+            var dx = x - x0;
+            var env = damp ? Math.exp(-damp * (dx / lambda) * 2 * Math.PI) : 1;
+            var y = cy - A * unit * env * Math.sin(phase0 - dx * k);
+            if (x === x0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function grid(x0, x1, cy, R, lambda, k, unit) {
+        ctx.strokeStyle = "rgba(45,51,59,.9)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        // 水平：中心轴 + ±0.5/±1 处
+        [0, 0.5, 1].forEach(function (f) {
+            if (f === 0) return;
+            var d = f * unit * 1.5;
+            line(x0, cy - d, x1, cy - d);
+            line(x0, cy + d, x1, cy + d);
+        });
+        line(x0, cy, x1, cy);
+        // 垂直：每半波长
+        for (var x = x0; x <= x1; x += lambda / 2) line(x, cy - unit * 1.7, x, cy + unit * 1.7);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function axes(cx, cy, unit) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(45,51,59,.9)";
+        ctx.beginPath();
+        line(cx - unit * 1.35, cy, cx + unit * 1.35, cy);
+        line(cx, cy - unit * 1.35, cx, cy + unit * 1.35);
+        ctx.stroke();
+        ctx.fillStyle = "#8b949e";
+        ctx.font = "12px sans-serif";
+        ctx.fillText("1", cx + unit + 4, cy - 4);
+        ctx.fillText("i", cx - 12, cy - unit + 4);
+        ctx.restore();
+    }
+
+    function line(x1, y1, x2, y2) { ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); }
+    function dashed(x1, y1, x2, y2, color) {
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        line(x1, y1, x2, y2);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
